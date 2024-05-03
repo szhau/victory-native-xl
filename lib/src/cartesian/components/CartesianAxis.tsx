@@ -160,6 +160,54 @@ export const CartesianAxis = <
     );
   });
 
+  const rightYAxisNodes = yScale.ticks(yTicks).map((tick) => {
+    const contentY = formatYLabel(tick as never);
+    const labelWidth = font?.getTextWidth?.(contentY) ?? 0;
+    const labelY = yScale(tick) + fontSize / 3;
+    const labelX = (() => {
+      // left, outset
+      if (yAxisPosition === "left" && yLabelPosition === "outset") {
+        return xScale(x1) - (labelWidth + yLabelOffset);
+      }
+      // left, inset
+      if (yAxisPosition === "left" && yLabelPosition === "inset") {
+        return xScale(x1) + yLabelOffset;
+      }
+      // right, outset
+      if (yAxisPosition === "right" && yLabelPosition === "outset") {
+        return xScale(x2) + yLabelOffset;
+      }
+      // right, inset
+      return xScale(x1) + yLabelOffset;
+    })();
+
+    const canFitLabelContent = labelY > fontSize && labelY < yScale(y2);
+
+    return (
+      <React.Fragment key={`y-tick-${tick}`}>
+        <Line
+          p1={vec(xScale(x1), yScale(tick))}
+          p2={vec(xScale(x2), yScale(tick))}
+          color={gridYLineColor}
+          strokeWidth={gridYLineWidth}
+        />
+        {font
+          ? canFitLabelContent && (
+              <Text
+                color={
+                  typeof labelColor === "string" ? labelColor : labelColor.y
+                }
+                text={contentY}
+                font={font}
+                y={labelY}
+                x={labelX}
+              />
+            )
+          : null}
+      </React.Fragment>
+    );
+  });
+
   const xAxisNodes = xScale.ticks(xTicks).map((tick) => {
     const val = isNumericalData ? tick : ix[tick];
     const contentX = formatXLabel(val as never);
@@ -224,6 +272,8 @@ export const CartesianAxis = <
     <>
       {xTicks > 0 ? xAxisNodes : null}
       {yTicks > 0 ? yAxisNodes : null}
+      {yTicks > 0 ? rightYAxisNodes : null}
+      
       <Path
         path={boundingFrame}
         strokeWidth={gridFrameLineWidth}
