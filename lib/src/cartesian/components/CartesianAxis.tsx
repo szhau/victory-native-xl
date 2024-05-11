@@ -35,7 +35,9 @@ export const CartesianAxis = <
   font,
   isNumericalData = false,
   ix,
+  label,
 }: AxisProps<RawData, XK, YK>) => {
+
   const axisConfiguration = useMemo(() => {
     return {
       xTicks: typeof tickCount === "number" ? tickCount : tickCount.x,
@@ -111,6 +113,23 @@ export const CartesianAxis = <
   const [y1 = 0, y2 = 0] = yScale.domain();
   const [x1r = 0, x2r = 0] = xScale.range();
   const fontSize = font?.getSize() ?? 0;
+
+
+  // Calculate the positions for the axis labels
+  const xAxisLabel = useMemo(() => {
+    if (!label?.x) return null;
+    const midPoint = (xScale.range()[0] + xScale.range()[1]) / 2;
+    const yPos = xAxisPosition === "bottom" ? yScale(y2) + 30 : yScale(y1) - 30; // Adjust 30 based on your styling needs
+    return { x: midPoint, y: yPos, text: label.x };
+  }, [label, xScale, yScale, xAxisPosition, y1, y2]);
+
+  const yAxisLabel = useMemo(() => {
+    if (!label?.y) return null;
+    const midPoint = (yScale.range()[0] + yScale.range()[1]) / 2;
+    const xPos = yAxisPosition === "left" ? xScale(x1) - 60 : xScale(x2) + 20; // Adjust 60 and 20 based on your styling needs
+    return { x: xPos, y: midPoint, text: label.y };
+  }, [label, xScale, yScale, yAxisPosition, x1, x2]);
+
 
   const yAxisNodes = yScale.ticks(yTicks).map((tick) => {
     const contentY = formatYLabel(tick as never);
@@ -273,6 +292,25 @@ export const CartesianAxis = <
       {xTicks > 0 ? xAxisNodes : null}
       {yTicks > 0 ? yAxisNodes : null}
       {yTicks > 0 ? rightYAxisNodes : null}
+      {xTicks > 0 && xAxisLabel && (
+        <Text
+          text={xAxisLabel.text}
+          x={xAxisLabel.x}
+          y={xAxisLabel.y}
+          color={labelColor.x || "#000"}
+          font={font}
+        />
+      )}
+      {yTicks > 0 && yAxisLabel && (
+        <Text
+          text={yAxisLabel.text}
+          x={yAxisLabel.x}
+          y={yAxisLabel.y}
+          color={labelColor.y || "#000"}
+          font={font}
+          rotation={-90} // Rotate the label for the Y-axis
+        />
+      )}
       
       <Path
         path={boundingFrame}

@@ -97,7 +97,12 @@ export function CartesianChart<
           xKey,
           yKeys,
           axisOptions: axisOptions
-            ? Object.assign({}, CartesianAxis.defaultProps, axisOptions)
+            ? Object.assign({}, CartesianAxis.defaultProps, , {
+              label: {
+                x: 'Time', // Example label for the X-axis
+                y: 'Value' // Example label for the Y-axis
+              }
+            })
             : undefined,
           outputWindow: {
             xMin: valueFromSidedNumber(padding, "left"),
