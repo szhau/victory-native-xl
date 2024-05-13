@@ -5,7 +5,7 @@ import {
   Skia,
   Text,
   vec,
-  type Color,
+  type Color,   Canvas,  Group, 
 } from "@shopify/react-native-skia";
 import { StyleSheet } from "react-native";
 import type {
@@ -16,10 +16,22 @@ import type {
   InputFields,
 } from "../../types";
 
+
+
+const RotatedText = ({ text, x, y, font, color  }) => {
+  return (
+    <Group transform={[{ rotate: -Math.PI / 2 }]} origin={{ x: x, y: y }}>
+      <Text x={x} y={y} text={text} font={font} color={color} />
+    </Group>
+  );
+};
+
+
 export const CartesianAxis = <
   RawData extends Record<string, unknown>,
   XK extends keyof InputFields<RawData>,
   YK extends keyof NumericalFields<RawData>,
+  YRK extends keyof NumericalFields<RawData>
 >({
   tickCount,
   labelPosition,
@@ -36,7 +48,7 @@ export const CartesianAxis = <
   isNumericalData = false,
   ix,
   label,
-}: AxisProps<RawData, XK, YK>) => {
+}: AxisProps<RawData, XK, YK, YRK>) => {
 
   const axisConfiguration = useMemo(() => {
     return {
@@ -115,19 +127,20 @@ export const CartesianAxis = <
   const fontSize = font?.getSize() ?? 0;
 
 
-  // Calculate the positions for the axis labels
+  // Calculate the positions for the axis labels, Lai added
   const xAxisLabel = useMemo(() => {
     if (!label?.x) return null;
     const midPoint = (xScale.range()[0] + xScale.range()[1]) / 2;
-    const yPos = xAxisPosition === "bottom" ? yScale(y2) + 30 : yScale(y1) - 30; // Adjust 30 based on your styling needs
-    return { x: midPoint, y: yPos, text: label.x };
+    const yPos = xAxisPosition === "bottom" ? yScale(y2) + 40 : yScale(y1) - 30; // Adjust 30 based on your styling needs
+    return { x: midPoint-20, y: yPos, text: label.x };
   }, [label, xScale, yScale, xAxisPosition, y1, y2]);
 
   const yAxisLabel = useMemo(() => {
+
     if (!label?.y) return null;
-    const midPoint = (yScale.range()[0] + yScale.range()[1]) / 2;
-    const xPos = yAxisPosition === "left" ? xScale(x1) - 60 : xScale(x2) + 20; // Adjust 60 and 20 based on your styling needs
-    return { x: xPos, y: midPoint, text: label.y };
+    const midPoint = (yScale.range()[0] + yScale.range()[1]) / 2+20;
+    const xPos = yAxisPosition === "left" ? 10  : xScale(x2) + 20; // Adjust 60 and 20 based on your styling needs
+    return { x: xPos, y: midPoint, text: label?.y, color: labelColor.yl };
   }, [label, xScale, yScale, yAxisPosition, x1, x2]);
 
 
@@ -166,7 +179,7 @@ export const CartesianAxis = <
           ? canFitLabelContent && (
               <Text
                 color={
-                  typeof labelColor === "string" ? labelColor : labelColor.y
+                  typeof labelColor === "string" ? labelColor : labelColor.yl
                 }
                 text={contentY}
                 font={font}
@@ -214,7 +227,7 @@ export const CartesianAxis = <
           ? canFitLabelContent && (
               <Text
                 color={
-                  typeof labelColor === "string" ? labelColor : labelColor.y
+                  typeof labelColor === "string" ? labelColor : labelColor.yr
                 }
                 text={contentY}
                 font={font}
@@ -238,7 +251,7 @@ export const CartesianAxis = <
     const labelY = (() => {
       // bottom, outset
       if (xAxisPosition === "bottom" && xLabelPosition === "outset") {
-        return yScale(y2) + xLabelOffset + fontSize;
+        return yScale(y2) + xLabelOffset + fontSize-5;
       }
       // bottom, inset
       if (xAxisPosition === "bottom" && xLabelPosition === "inset") {
@@ -301,16 +314,16 @@ export const CartesianAxis = <
           font={font}
         />
       )}
-      {yTicks > 0 && yAxisLabel && (
-        <Text
-          text={yAxisLabel.text}
-          x={yAxisLabel.x}
-          y={yAxisLabel.y}
-          color={labelColor.y || "#000"}
-          font={font}
-          rotation={-90} // Rotate the label for the Y-axis
-        />
-      )}
+        {yTicks > 0 && yAxisLabel && (
+         <RotatedText
+            text={yAxisLabel.text}
+            x={yAxisLabel.x}
+            y={yAxisLabel.y}
+            font={font} 
+            color={yAxisLabel.color}
+          />
+        
+      )}  
       
       <Path
         path={boundingFrame}
@@ -333,4 +346,4 @@ CartesianAxis.defaultProps = {
   formatYLabel: (label: ValueOf<InputDatum>) => String(label),
   labelColor: "#000000",
   ix: [],
-} satisfies Partial<AxisProps<never, never, never>>;
+} satisfies Partial<AxisProps<never, never, never, never>>;

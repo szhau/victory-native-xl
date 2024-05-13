@@ -29,10 +29,12 @@ export const transformInputData = <
   RawData extends Record<string, unknown>,
   XK extends keyof InputFields<RawData>,
   YK extends keyof NumericalFields<RawData>,
+  YRK extends keyof NumericalFields<RawData>,
 >({
   data: _data,
   xKey,
   yKeys,
+  yrKeys,
   outputWindow,
   axisOptions,
   domain,
@@ -41,13 +43,15 @@ export const transformInputData = <
   data: RawData[];
   xKey: XK;
   yKeys: YK[];
+  yrKeys: YRK[];
   outputWindow: PrimitiveViewWindow;
-  axisOptions?: Partial<Omit<AxisProps<RawData, XK, YK>, "xScale" | "yScale">>;
-  domain?: { x?: [number] | [number, number]; y?: [number] | [number, number] };
+  axisOptions?: Partial<Omit<AxisProps<RawData, XK, YK, YRK>, "xScale" | "yScale">>;
+  domain?: { x?: [number] | [number, number]; y?: [number] | number[]; yr?: [number] | number[] };
   domainPadding?: SidedNumber;
-}): TransformedData<RawData, XK, YK> & {
+}): TransformedData<RawData, XK, YK, YRK> & {
   xScale: ScaleLinear<number, number>;
   yScale: ScaleLinear<number, number>;
+  yrScale: ScaleLinear<number, number>;
   isNumericalData: boolean;
 } => {
   const data = [..._data];
@@ -87,20 +91,55 @@ export const transformInputData = <
       }),
     );
 
+
+    //right y
+  const yrMin =
+    domain?.yr?.[0] ??
+    Math.min(
+      ...yrKeys.map((key) => {
+        return data.reduce((min, curr) => {
+          if (typeof curr[key] !== "number") return min;
+          return Math.min(min, curr[key] as number);
+        }, Infinity);
+      }),
+    );
+  const yrMax =
+    domain?.yr?.[1] ??
+    Math.max(
+      ...yrKeys.map((key) => {
+        return data.reduce((max, curr) => {
+          if (typeof curr[key] !== "number") return max;
+          return Math.max(max, curr[key] as number);
+        }, -Infinity);
+      }),
+    );
+
   // Set up our y-output data structure
   const y = yKeys.reduce(
     (acc, k) => {
       acc[k] = { i: [], o: [] };
       return acc;
     },
-    {} as TransformedData<RawData, XK, YK>["y"],
+    {} as TransformedData<RawData, XK, YK, YRK>["y"],
   );
+
+  const yr = yrKeys.reduce(
+    (acc, k) => {
+      acc[k] = { i: [], o: [] };
+      return acc;
+    },
+    {} as TransformedData<RawData, XK, YK, YRK>["yr"],
+  );
+
 
   // Set up our y-scale, notice how domain is "flipped" because
   //  we're moving from cartesian to canvas coordinates
   // Also, if single data point, manually add upper & lower bounds so chart renders properly
   const yScaleDomain = (
     yMax === yMin ? [yMax + 1, yMin - 1] : [yMax, yMin]
+  ) as [number, number];
+  const yrScaleDomain = (
+    yrMax === yrMin ? [yrMax + 1, yrMin - 1] : [yrMax, yrMin]
   ) as [number, number];
   const fontHeight = axisOptions?.font?.getSize?.() ?? 0;
   // Our yScaleRange is impacted by our grid options
@@ -157,6 +196,28 @@ export const transformInputData = <
           : datum[yKey]) as MaybeNumber,
     );
   });
+
+  
+  const yrScale = makeScale({
+    inputBounds: yrScaleDomain,
+    outputBounds: yScaleRange,
+    isNice: true,
+    padEnd:
+      typeof domainPadding === "number" ? domainPadding : domainPadding?.bottom,
+    padStart:
+      typeof domainPadding === "number" ? domainPadding : domainPadding?.top,
+  });
+
+  yrKeys.forEach((yKey) => {
+    yr[yKey].i = data.map((datum) => datum[yKey] as MaybeNumber);
+    yr[yKey].o = data.map(
+      (datum) =>
+        (typeof datum[yKey] === "number"
+          ? yrScale(datum[yKey] as number)
+          : datum[yKey]) as MaybeNumber,
+    );
+  });
+
 
   // Measure our top-most y-label if we have grid options so we can
   //  compensate for it in our x-scale.
@@ -219,8 +280,10 @@ export const transformInputData = <
     ix,
     ox,
     y,
+    yr,
     xScale,
     yScale,
+    yrScale,
     isNumericalData,
   };
 };

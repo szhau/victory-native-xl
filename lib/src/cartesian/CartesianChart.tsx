@@ -29,21 +29,23 @@ type CartesianChartProps<
   RawData extends Record<string, unknown>,
   XK extends keyof InputFields<RawData>,
   YK extends keyof NumericalFields<RawData>,
+  YRK extends keyof NumericalFields<RawData>,
 > = {
   data: RawData[];
   xKey: XK;
   yKeys: YK[];
+  yrKeys: YRK[];
   padding?: SidedNumber;
   domainPadding?: SidedNumber;
   domain?: { x?: [number] | [number, number]; y?: [number] | [number, number] };
   chartPressState?:
     | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>
     | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>[];
-  children: (args: CartesianChartRenderArg<RawData, YK>) => React.ReactNode;
+  children: (args: CartesianChartRenderArg<RawData, YK, YRK>) => React.ReactNode;
   renderOutside: (
-    args: CartesianChartRenderArg<RawData, YK>,
+    args: CartesianChartRenderArg<RawData, YK, YRK>,
   ) => React.ReactNode;
-  axisOptions?: Partial<Omit<AxisProps<RawData, XK, YK>, "xScale" | "yScale">>;
+  axisOptions?: Partial<Omit<AxisProps<RawData, XK, YK, YRK>, "xScale" | "yScale">>;
   onChartBoundsChange?: (bounds: ChartBounds) => void;
   gestureLongPressDelay?: number;
 };
@@ -52,10 +54,12 @@ export function CartesianChart<
   RawData extends Record<string, unknown>,
   XK extends keyof InputFields<RawData>,
   YK extends keyof NumericalFields<RawData>,
+  YRK extends keyof NumericalFields<RawData>,
 >({
   data,
   xKey,
   yKeys,
+  yrKeys,
   padding,
   domainPadding,
   children,
@@ -65,7 +69,7 @@ export function CartesianChart<
   chartPressState,
   onChartBoundsChange,
   gestureLongPressDelay = 100,
-}: CartesianChartProps<RawData, XK, YK>) {
+}: CartesianChartProps<RawData, XK, YK, YRK>) {
   const [size, setSize] = React.useState({ width: 0, height: 0 });
   const [hasMeasuredLayoutSize, setHasMeasuredLayoutSize] =
     React.useState(false);
@@ -77,7 +81,7 @@ export function CartesianChart<
     [],
   );
 
-  const tData = useSharedValue<TransformedData<RawData, XK, YK>>({
+  const tData = useSharedValue<TransformedData<RawData, XK, YK, YRK>>({
     ix: [],
     ox: [],
     y: yKeys.reduce(
@@ -85,30 +89,39 @@ export function CartesianChart<
         acc[key] = { i: [], o: [] };
         return acc;
       },
-      {} as TransformedData<RawData, XK, YK>["y"],
+      {} as TransformedData<RawData, XK, YK,YRK>["y"],
+    ),
+    yr: yrKeys.reduce(
+      (acc, key) => {
+        acc[key] = { i: [], o: [] };
+        return acc;
+      },
+      {} as TransformedData<RawData, XK, YK,YRK>["yr"],
     ),
   });
 
-  const { xScale, yScale, chartBounds, isNumericalData, _tData } =
+  const { xScale, yScale,yrScale, chartBounds, isNumericalData, _tData } =
     React.useMemo(() => {
-      const { xScale, yScale, isNumericalData, ..._tData } = transformInputData(
+      const { xScale, yScale, yrScale, isNumericalData, ..._tData } = transformInputData(
         {
           data,
           xKey,
           yKeys,
+          yrKeys,
           axisOptions: axisOptions
             ? axisOptions: Object.assign({}, CartesianAxis.defaultProps,  {
               label: {
-                x: 'Time', // Example label for the X-axis
-                y: 'Value' // Example label for the Y-axis
+                x: 'Time', 
+                yl: 'Value',
+                yr: 'Value', 
               }
             })
            ,
           outputWindow: {
-            xMin: valueFromSidedNumber(padding, "left"),
+            xMin: valueFromSidedNumber(padding, "left")+10,
             xMax: size.width - valueFromSidedNumber(padding, "right"),
             yMin: valueFromSidedNumber(padding, "top"),
-            yMax: size.height - valueFromSidedNumber(padding, "bottom"),
+            yMax: size.height - valueFromSidedNumber(padding, "bottom")-20,
           },
           domain,
           domainPadding,
@@ -123,11 +136,12 @@ export function CartesianChart<
         bottom: yScale(yScale.domain().at(-1) || 0),
       };
 
-      return { tData, xScale, yScale, chartBounds, isNumericalData, _tData };
+      return { tData, xScale, yScale, yrScale, chartBounds, isNumericalData, _tData };
     }, [
       data,
       xKey,
       yKeys,
+      yrKeys,
       axisOptions,
       padding,
       size.width,
@@ -135,7 +149,8 @@ export function CartesianChart<
       domain,
       domainPadding,
       tData,
-    ]);
+    ]
+  );
 
   /**
    * Pan gesture handling
@@ -301,7 +316,9 @@ export function CartesianChart<
    * Allow end-user to request "raw-ish" data for a given yKey.
    * Generate this on demand using a proxy.
    */
-  type PointsArg = CartesianChartRenderArg<RawData, YK>["points"];
+  type PointsArg = CartesianChartRenderArg<RawData, YK, YRK>["points"];
+  type PointsrArg = CartesianChartRenderArg<RawData, YK, YRK>["pointsr"];
+
   const points = React.useMemo<PointsArg>(() => {
     const cache = {} as Record<YK, PointsArg[keyof PointsArg]>;
     return new Proxy(
@@ -317,13 +334,39 @@ export function CartesianChart<
             xValue: x,
             y: _tData.y[key].o[i],
             yValue: _tData.y[key].i[i],
-          }));
-
+          }));         
+        
           return cache[key];
         },
       },
     ) as PointsArg;
   }, [_tData, yKeys]);
+
+
+
+  const pointsr = React.useMemo<PointsrArg>(() => {
+    const cache = {} as Record<YRK, PointsrArg[keyof PointsrArg]>;
+    return new Proxy(
+      {},
+      {
+        get(_, property: string): PointsrArg[keyof PointsrArg] | undefined {
+          const key = property as YRK;
+
+          if (!yrKeys.includes(key)) return undefined;
+          if (cache[key]) return cache[key];
+
+          cache[key] = _tData.ix.map((x, i) => ({
+            x: asNumber(_tData.ox[i]),
+            xValue: x,
+            y: _tData.yr[key].o[i],
+            yValue: _tData.yr[key].i[i],
+          }));        
+
+          return cache[key];
+        },
+      },
+    ) as PointsrArg;
+  }, [_tData, yrKeys]);
 
   // On bounds change, emit
   const onChartBoundsRef = useFunctionRef(onChartBoundsChange);
@@ -331,13 +374,16 @@ export function CartesianChart<
     onChartBoundsRef.current?.(chartBounds);
   }, [chartBounds, onChartBoundsRef]);
 
-  const renderArg: CartesianChartRenderArg<RawData, YK> = {
+  const renderArg: CartesianChartRenderArg<RawData, YK,YRK> = {
     xScale,
     yScale,
+    yrScale,
     chartBounds,
     canvasSize: size,
     points,
+    pointsr,
   };
+
   const clipRect = rect(
     chartBounds.left,
     chartBounds.top,

@@ -22,11 +22,18 @@ export type ScatterOptions = {
     radius: number;
 };
 export type ValueOf<T> = T[keyof T];
-export type TransformedData<RawData extends Record<string, unknown>, XK extends keyof InputFields<RawData>, YK extends keyof NumericalFields<RawData>> = {
+export type TransformedData<RawData extends Record<string, unknown>, XK extends keyof InputFields<RawData>,
+ YK extends keyof NumericalFields<RawData>, YRK extends keyof NumericalFields<RawData>> = {
     ix: InputFields<RawData>[XK][];
     ox: number[];
     y: {
         [K in YK]: {
+            i: MaybeNumber[];
+            o: MaybeNumber[];
+        };
+    };
+    yr: {
+        [K in YRK]: {
             i: MaybeNumber[];
             o: MaybeNumber[];
         };
@@ -50,9 +57,11 @@ export type ChartBounds = {
     top: number;
     bottom: number;
 };
-export type CartesianChartRenderArg<RawData extends Record<string, unknown>, YK extends keyof NumericalFields<RawData>> = {
+export type CartesianChartRenderArg<RawData extends Record<string, unknown>, YK extends keyof NumericalFields<RawData>,
+ YRK extends keyof NumericalFields<RawData>> = {
     xScale: Scale;
     yScale: Scale;
+    yrScale: Scale;
     chartBounds: ChartBounds;
     canvasSize: {
         width: number;
@@ -60,6 +69,9 @@ export type CartesianChartRenderArg<RawData extends Record<string, unknown>, YK 
     };
     points: {
         [K in YK]: PointsArray;
+    };
+    pointsr: {
+        [K in YRK]: PointsArray;
     };
 };
 export type Scale = ScaleLinear<number, number>;
@@ -80,10 +92,20 @@ export type ColorFields<T> = {
     [K in keyof T as T[K] extends Color ? K : never]: T[K];
 };
 export type StringKeyOf<T> = Extract<keyof T, string>;
-export type AxisProps<RawData extends Record<string, unknown>, XK extends keyof InputFields<RawData>, YK extends keyof NumericalFields<RawData>> = {
+
+
+type LabelColorType = string | {
+    x: string;
+    yl: string | Record<string, string>; 
+    yr: string | Record<string, string>;
+  };
+type YaxisSideType = YAxisSide | Record<string,YAxisSide>;
+export type AxisProps<RawData extends Record<string, unknown>, XK extends keyof InputFields<RawData>, YK extends keyof NumericalFields<RawData>,
+    YRK extends keyof NumericalFields<RawData>> = {
     label?: string | {
         x?: string;
-        y?: string;
+        yl?: string| string[];
+        yr?: string| string[];
       };
     xScale: ScaleLinear<number, number, never>;
     yScale: ScaleLinear<number, number, never>;
@@ -102,10 +124,7 @@ export type AxisProps<RawData extends Record<string, unknown>, XK extends keyof 
         };
         frame: number;
     };
-    labelColor: string | {
-        x: string;
-        y: string;
-    };
+    labelColor: LabelColorType;
     tickCount: number | {
         x: number;
         y: number;
@@ -120,10 +139,11 @@ export type AxisProps<RawData extends Record<string, unknown>, XK extends keyof 
     };
     axisSide: {
         x: XAxisSide;
-        y: YAxisSide;
+        y: YaxisSideType;
     };
     formatXLabel: (label: InputFields<RawData>[XK]) => string;
     formatYLabel: (label: RawData[YK]) => string;
+    
     isNumericalData?: boolean;
     ix: InputFields<RawData>[XK][];
 };
