@@ -177,6 +177,8 @@ export const transformInputData = <
     return [outputWindow.yMin, outputWindow.yMax];
   })();
 
+
+
   const yScale = makeScale({
     inputBounds: yScaleDomain,
     outputBounds: yScaleRange,
@@ -196,7 +198,7 @@ export const transformInputData = <
           : datum[yKey]) as MaybeNumber,
     );
   });
-
+  console.log("transform,",yrScaleDomain,yScaleRange, yScaleDomain);
   
   const yrScale = makeScale({
     inputBounds: yrScaleDomain,
@@ -265,6 +267,8 @@ export const transformInputData = <
     return [outputWindow.xMin, outputWindow.xMax];
   })();
 
+
+
   const xScale = makeScale({
     // if single data point, manually add upper & lower bounds so chart renders properly
     inputBounds: ixMin === ixMax ? [ixMin - 1, ixMax + 1] : [ixMin, ixMax],
@@ -273,8 +277,10 @@ export const transformInputData = <
       typeof domainPadding === "number" ? domainPadding : domainPadding?.left,
     padEnd:
       typeof domainPadding === "number" ? domainPadding : domainPadding?.right,
+      
   });
   const ox = ixNum.map((x) => xScale(x)!);
+
 
   return {
     ix,

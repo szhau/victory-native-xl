@@ -5,7 +5,7 @@ import {
   Skia,
   Text,
   vec,
-  type Color,   Canvas,  Group, 
+  type Color,   Canvas,  Group, type SkFont,
 } from "@shopify/react-native-skia";
 import { StyleSheet } from "react-native";
 import type {
@@ -18,9 +18,18 @@ import type {
 
 
 
-const RotatedText = ({ text, x, y, font, color  }) => {
+interface RotatedTextProps {
+  radian:number;
+  text: string;
+  x: number;
+  y: number;
+  font: SkFont; // Adjust this type according to the actual type from Skia
+  color: Color;
+}
+
+const RotatedText: React.FC<RotatedTextProps> = ({radian, text, x, y, font, color }) => {
   return (
-    <Group transform={[{ rotate: -Math.PI / 2 }]} origin={{ x: x, y: y }}>
+    <Group transform={[{ rotate: radian }]} origin={{ x: x, y: y }}>
       <Text x={x} y={y} text={text} font={font} color={color} />
     </Group>
   );
@@ -44,6 +53,7 @@ export const CartesianAxis = <
   formatXLabel,
   yScale,
   xScale,
+  yrScale,
   font,
   isNumericalData = false,
   ix,
@@ -123,6 +133,7 @@ export const CartesianAxis = <
 
   const [x1 = 0, x2 = 0] = xScale.domain();
   const [y1 = 0, y2 = 0] = yScale.domain();
+  const [y1r = 0, y2r = 0] = yrScale.domain();
   const [x1r = 0, x2r = 0] = xScale.range();
   const fontSize = font?.getSize() ?? 0;
 
@@ -131,17 +142,28 @@ export const CartesianAxis = <
   const xAxisLabel = useMemo(() => {
     if (!label?.x) return null;
     const midPoint = (xScale.range()[0] + xScale.range()[1]) / 2;
-    const yPos = xAxisPosition === "bottom" ? yScale(y2) + 40 : yScale(y1) - 30; // Adjust 30 based on your styling needs
+    const yPos =  yScale(y2) + 40 ; // Adjust 30 based on your styling needs
     return { x: midPoint-20, y: yPos, text: label.x };
   }, [label, xScale, yScale, xAxisPosition, y1, y2]);
 
   const yAxisLabel = useMemo(() => {
-
-    if (!label?.y) return null;
+    if (!label?.yl) return null;
     const midPoint = (yScale.range()[0] + yScale.range()[1]) / 2+20;
-    const xPos = yAxisPosition === "left" ? 10  : xScale(x2) + 20; // Adjust 60 and 20 based on your styling needs
-    return { x: xPos, y: midPoint, text: label?.y, color: labelColor.yl };
-  }, [label, xScale, yScale, yAxisPosition, x1, x2]);
+    //const xPos = yAxisPosition === "left" ? 10  : xScale(x2) + 20;
+    const xPos =  10  ; // Adjust 60 and 20 based on your styling needs
+    return { x: xPos, y: midPoint, text: label?.yl, color: labelColor.yl };
+  }, [label, xScale, yScale,  x1, x2]);
+
+  const yrAxisLabels = useMemo(() => {
+    if (!Array.isArray(label?.yr)) return [];
+    
+    return label.yr.map((yrLabel, index) => {
+      const midPoint = (yrScale.range()[0] + yrScale.range()[1]) / 2 + 20;
+      const xPos = xScale(x2) + 20 + (index * 20); // Adjust spacing as needed
+      console.log("xy,",xPos,midPoint );
+      return { x: xPos, y: midPoint, text: yrLabel, color: labelColor.yr };
+    });
+  }, [label, xScale, yrScale, x1, x2]);
 
 
   const yAxisNodes = yScale.ticks(yTicks).map((tick) => {
@@ -149,23 +171,11 @@ export const CartesianAxis = <
     const labelWidth = font?.getTextWidth?.(contentY) ?? 0;
     const labelY = yScale(tick) + fontSize / 3;
     const labelX = (() => {
-      // left, outset
-      if (yAxisPosition === "left" && yLabelPosition === "outset") {
-        return xScale(x1) - (labelWidth + yLabelOffset);
-      }
-      // left, inset
-      if (yAxisPosition === "left" && yLabelPosition === "inset") {
-        return xScale(x1) + yLabelOffset;
-      }
-      // right, outset
-      if (yAxisPosition === "right" && yLabelPosition === "outset") {
-        return xScale(x2) + yLabelOffset;
-      }
-      // right, inset
-      return xScale(x2) - (labelWidth + yLabelOffset);
+      // left, outset      
+      console.log("labelX left",xScale(x1) - (labelWidth + yLabelOffset), labelY, yScale(tick),tick);
+        return xScale(x1) - (labelWidth + yLabelOffset);     
+     
     })();
-
-    const canFitLabelContent = labelY > fontSize && labelY < yScale(y2);
 
     return (
       <React.Fragment key={`y-tick-${tick}`}>
@@ -176,7 +186,7 @@ export const CartesianAxis = <
           strokeWidth={gridYLineWidth}
         />
         {font
-          ? canFitLabelContent && (
+          ?  (
               <Text
                 color={
                   typeof labelColor === "string" ? labelColor : labelColor.yl
@@ -192,39 +202,25 @@ export const CartesianAxis = <
     );
   });
 
-  const rightYAxisNodes = yScale.ticks(yTicks).map((tick) => {
+  
+
+  const rightYAxisNodes = yrScale.ticks( yScale.ticks(yTicks).length ).map((tick) => {
     const contentY = formatYLabel(tick as never);
     const labelWidth = font?.getTextWidth?.(contentY) ?? 0;
-    const labelY = yScale(tick) + fontSize / 3;
-    const labelX = (() => {
-      // left, outset
-      if (yAxisPosition === "left" && yLabelPosition === "outset") {
-        return xScale(x1) - (labelWidth + yLabelOffset);
-      }
-      // left, inset
-      if (yAxisPosition === "left" && yLabelPosition === "inset") {
-        return xScale(x1) + yLabelOffset;
-      }
-      // right, outset
-      if (yAxisPosition === "right" && yLabelPosition === "outset") {
-        return xScale(x2) + yLabelOffset;
-      }
-      // right, inset
-      return xScale(x1) + yLabelOffset;
-    })();
+    const labelY = yrScale( tick ) + fontSize / 3;    
 
-    const canFitLabelContent = labelY > fontSize && labelY < yScale(y2);
+    const labelX = (() => {
+      // left, outset      
+      console.log("labely right", labelY, yScale.ticks(yTicks).length ,tick);
+        return xScale(x2) + (labelWidth - yLabelOffset);    
+    })();
+   
 
     return (
-      <React.Fragment key={`y-tick-${tick}`}>
-        <Line
-          p1={vec(xScale(x1), yScale(tick))}
-          p2={vec(xScale(x2), yScale(tick))}
-          color={gridYLineColor}
-          strokeWidth={gridYLineWidth}
-        />
+      <React.Fragment key={`yr-tick-${tick}`}>
+        
         {font
-          ? canFitLabelContent && (
+          ? (
               <Text
                 color={
                   typeof labelColor === "string" ? labelColor : labelColor.yr
@@ -314,8 +310,9 @@ export const CartesianAxis = <
           font={font}
         />
       )}
-        {yTicks > 0 && yAxisLabel && (
+      {yTicks > 0 && yAxisLabel && (
          <RotatedText
+            radian={-Math.PI / 2}
             text={yAxisLabel.text}
             x={yAxisLabel.x}
             y={yAxisLabel.y}
@@ -323,7 +320,18 @@ export const CartesianAxis = <
             color={yAxisLabel.color}
           />
         
-      )}  
+      )} 
+      {yTicks > 0 && yrAxisLabels.map((yrAxisLabel, index) => (
+         <RotatedText
+            radian={Math.PI / 2}
+            key={`yr-label-${index}`}
+            text={yrAxisLabel.text}
+            x={yrAxisLabel.x+10}
+            y={yrAxisLabel.y-50}
+            font={font} 
+            color={yrAxisLabel.color}
+          />
+      ))}
       
       <Path
         path={boundingFrame}

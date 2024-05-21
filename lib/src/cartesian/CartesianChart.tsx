@@ -118,10 +118,10 @@ export function CartesianChart<
             })
            ,
           outputWindow: {
-            xMin: valueFromSidedNumber(padding, "left")+10,
+            xMin: valueFromSidedNumber(padding, "left"),
             xMax: size.width - valueFromSidedNumber(padding, "right"),
             yMin: valueFromSidedNumber(padding, "top"),
-            yMax: size.height - valueFromSidedNumber(padding, "bottom")-20,
+            yMax: size.height - valueFromSidedNumber(padding, "bottom"),
           },
           domain,
           domainPadding,
@@ -402,6 +402,7 @@ export function CartesianChart<
                 ...axisOptions,
                 xScale,
                 yScale,
+                yrScale,
                 isNumericalData,
                 ix: _tData.ix,
               }}
