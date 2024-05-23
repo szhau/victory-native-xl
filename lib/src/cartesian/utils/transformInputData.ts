@@ -198,7 +198,7 @@ export const transformInputData = <
           : datum[yKey]) as MaybeNumber,
     );
   });
-  console.log("transform,",yrScaleDomain,yScaleRange, yScaleDomain);
+  //console.log("transform,",yrScaleDomain,yScaleRange, yScaleDomain);
   
   const yrScale = makeScale({
     inputBounds: yrScaleDomain,

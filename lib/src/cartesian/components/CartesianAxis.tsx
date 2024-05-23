@@ -150,7 +150,7 @@ export const CartesianAxis = <
     if (!label?.yl) return null;
     const midPoint = (yScale.range()[0] + yScale.range()[1]) / 2+20;
     //const xPos = yAxisPosition === "left" ? 10  : xScale(x2) + 20;
-    const xPos =  10  ; // Adjust 60 and 20 based on your styling needs
+    const xPos =  15  ; // Adjust 60 and 20 based on your styling needs
     return { x: xPos, y: midPoint, text: label?.yl, color: labelColor.yl };
   }, [label, xScale, yScale,  x1, x2]);
 
@@ -160,7 +160,7 @@ export const CartesianAxis = <
     return label.yr.map((yrLabel, index) => {
       const midPoint = (yrScale.range()[0] + yrScale.range()[1]) / 2 + 20;
       const xPos = xScale(x2) + 20 + (index * 20); // Adjust spacing as needed
-      console.log("xy,",xPos,midPoint );
+      //console.log("xy,",xPos,midPoint );
       return { x: xPos, y: midPoint, text: yrLabel, color: labelColor.yr };
     });
   }, [label, xScale, yrScale, x1, x2]);
@@ -172,7 +172,7 @@ export const CartesianAxis = <
     const labelY = yScale(tick) + fontSize / 3;
     const labelX = (() => {
       // left, outset      
-      console.log("labelX left",xScale(x1) - (labelWidth + yLabelOffset), labelY, yScale(tick),tick);
+      //console.log("labelX left",xScale(x1) - (labelWidth + yLabelOffset), labelY, yScale(tick),tick);
         return xScale(x1) - (labelWidth + yLabelOffset);     
      
     })();
@@ -211,7 +211,7 @@ export const CartesianAxis = <
 
     const labelX = (() => {
       // left, outset      
-      console.log("labely right", labelY, yScale.ticks(yTicks).length ,tick);
+      //console.log("labely right", labelY, yScale.ticks(yTicks).length ,tick);
         return xScale(x2) + (labelWidth - yLabelOffset);    
     })();
    

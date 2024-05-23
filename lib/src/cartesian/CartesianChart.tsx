@@ -34,7 +34,7 @@ type CartesianChartProps<
   data: RawData[];
   xKey: XK;
   yKeys: YK[];
-  yrKeys: YRK[];
+  yrKeys?: YRK[];
   padding?: SidedNumber;
   domainPadding?: SidedNumber;
   domain?: { x?: [number] | [number, number]; y?: [number] | [number, number] };
@@ -59,7 +59,7 @@ export function CartesianChart<
   data,
   xKey,
   yKeys,
-  yrKeys,
+  yrKeys= [],
   padding,
   domainPadding,
   children,
@@ -108,14 +108,18 @@ export function CartesianChart<
           xKey,
           yKeys,
           yrKeys,
-          axisOptions: axisOptions
-            ? axisOptions: Object.assign({}, CartesianAxis.defaultProps,  {
-              label: {
-                x: 'Time', 
-                yl: 'Value',
-                yr: 'Value', 
-              }
-            })
+          axisOptions: {
+            ...axisOptions,
+            label: {
+              ...axisOptions?.label,
+              yr: yrKeys.length > 0 ? axisOptions?.label?.yr : undefined,
+            },
+            labelPosition: {
+              ...axisOptions?.labelPosition,
+              yr: yrKeys.length > 0 ? axisOptions?.labelPosition?.yr : undefined,
+            },
+           
+          }
            ,
           outputWindow: {
             xMin: valueFromSidedNumber(padding, "left"),
