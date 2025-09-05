@@ -10,7 +10,8 @@ import type { InputFieldType } from "../../types";
 export const useChartPressState = <Init extends ChartPressStateInit>(
   initialValues: Init,
 ): { state: ChartPressState<Init>; isActive: boolean } => {
-  const keys = Object.keys(initialValues.y).join(",");
+  const yKeys = Object.keys(initialValues.y).join(",");
+  const yrKeys = Object.keys(initialValues.yr).join(",");
 
   const state = React.useMemo(() => {
     return {
@@ -29,21 +30,43 @@ export const useChartPressState = <Init extends ChartPressStateInit>(
           { value: SharedValue<number>; position: SharedValue<number> }
         >,
       ),
+      yr: Object.entries(initialValues.yr).reduce(
+        (acc, [key, initVal]) => {
+          acc[key as keyof Init["yr"]] = {
+            value: makeMutable(initVal),
+            position: makeMutable(0),
+          };
+          return acc;
+        },
+        {} as Record<
+          keyof Init["yr"],
+          { value: SharedValue<number>; position: SharedValue<number> }
+        >,
+      ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keys]);
+  }, [yKeys, yrKeys]);
 
   const isActive = useIsPressActive(state);
 
   return { state, isActive };
 };
 
-type ChartPressStateInit = { x: InputFieldType; y: Record<string, number> };
+type ChartPressStateInit = { 
+  x: InputFieldType; 
+  y: Record<string, number>; 
+  yr: Record<string, number>; 
+};
+
 export type ChartPressState<Init extends ChartPressStateInit> = {
   isActive: SharedValue<boolean>;
   x: { value: SharedValue<Init["x"]>; position: SharedValue<number> };
   y: Record<
     keyof Init["y"],
+    { value: SharedValue<number>; position: SharedValue<number> }
+  >;
+  yr: Record<
+    keyof Init["yr"],
     { value: SharedValue<number>; position: SharedValue<number> }
   >;
 };
