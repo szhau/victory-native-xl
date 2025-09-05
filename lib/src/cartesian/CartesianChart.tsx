@@ -39,8 +39,8 @@ type CartesianChartProps<
   domainPadding?: SidedNumber;
   domain?: { x?: [number] | [number, number]; y?: [number] | [number, number] };
   chartPressState?:
-    | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>
-    | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>[];
+    | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number>; yr: Record<YRK, number> }>
+    | ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number>; yr: Record<YRK, number> }>[];
   children: (args: CartesianChartRenderArg<RawData, YK, YRK>) => React.ReactNode;
   renderOutside: (
     args: CartesianChartRenderArg<RawData, YK, YRK>,
@@ -164,7 +164,7 @@ export function CartesianChart<
    * Take a "press value" and an x-value and update the shared values accordingly.
    */
   const handleTouch = (
-    v: ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>,
+    v: ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number>; yr: Record<YRK, number> }>,
     x: number,
   ) => {
     "worklet";
@@ -172,6 +172,7 @@ export function CartesianChart<
     if (typeof idx !== "number") return;
 
     const isInYs = (yk: string): yk is YK & string => yKeys.includes(yk as YK);
+    const isInYrs = (yrk: string): yrk is YRK & string => yrKeys.includes(yrk as YRK);
     // Shared value
     if (v) {
       try {
@@ -181,6 +182,15 @@ export function CartesianChart<
           if (isInYs(yk)) {
             v.y[yk].value.value = asNumber(tData.value.y[yk].i[idx]);
             v.y[yk].position.value = asNumber(tData.value.y[yk].o[idx]);
+          }
+        }
+        // Handle right y-axis values
+        if (v.yr) {
+          for (const yrk in v.yr) {
+            if (isInYrs(yrk)) {
+              v.yr[yrk].value.value = asNumber(tData.value.yr[yrk].i[idx]);
+              v.yr[yrk].position.value = asNumber(tData.value.yr[yrk].o[idx]);
+            }
           }
         }
       } catch (err) {
@@ -208,7 +218,7 @@ export function CartesianChart<
   const gestureState = useSharedValue({
     isGestureActive: false,
     bootstrap: [] as [
-      ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number> }>,
+      ChartPressState<{ x: InputFields<RawData>[XK]; y: Record<YK, number>; yr: Record<YRK, number> }>,
       TouchData,
     ][],
   });
